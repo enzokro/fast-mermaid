@@ -58,40 +58,17 @@ def create_mermaid_ui():
         cls="text-4xl font-bold mb-4 p-4 bg-blue-100"
     )
 
-def extract_and_adjust_viewbox(svg_content):
-    """Extracts the viewBox attribute from the SVG and adjusts it if necessary.
-    
-    This makes sure the rendered SVG takes up the available display space.
-    """
-    match = re.search(r'viewBox="([^"]*)"', svg_content)
-    if match:
-        x, y, width, height = map(float, match.group(1).split())
-        if x < 0 or y < 0:
-            adj_width = width + abs(x)
-            adj_height = height + abs(y)
-            new_viewbox = f"0 0 {adj_width} {adj_height}"
-            svg_content = svg_content.replace(
-                '<svg',
-                f'<svg transform="translate({-x} {-y})"',
-                1
-            )
-            return new_viewbox, svg_content
-        else:
-            return match.group(1), svg_content
-    return None, svg_content
 
 async def process_mermaid_content(content):
-    """Calls the Mermaid Ink API on `content` and returns a rendered `Svg`."""
+    """Calls the Mermaid Ink API on `content` and returns a FastHTML `Svg`."""
     encoded_content = base64.urlsafe_b64encode(content.encode()).decode()
     svg_url = f"https://mermaid.ink/svg/{encoded_content}"
     async with httpx.AsyncClient() as client:
         response = await client.get(svg_url)
         if response.status_code == 200:
             svg_content = response.text
-            viewBox, adjusted_svg_content = extract_and_adjust_viewbox(svg_content)
             return Svg(
-                NotStr(adjusted_svg_content),
-                viewBox=viewBox,
+                NotStr(svg_content),
                 preserveAspectRatio="xMidYMid meet",
                 cls="w-full h-full"
             )
