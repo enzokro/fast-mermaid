@@ -1,29 +1,29 @@
-import base64
 import re
+import base64
 import httpx
 from fasthtml.common import *
 from fasthtml.svg import *
 
 
-# create the app with Tailwind for styling 
+# creates the app with Tailwind for styling
 app, rt = fast_app(
     hdrs=(
         Script(src="https://cdn.tailwindcss.com"),
     )
 )
 
-class MermaidEditor:
-    """A Mermaid editor with live preview."""
-    def __init__(self, content: str = ""):
+class FastMermaid:
+    """A Mermaid file uploader and editor with live SVG rendering."""
+    def __init__(self, content=""):
         self.content = content
 
     def __ft__(self):
         """Trying out custom FastHTML classes."""
         return Div(
             Div(
-                H2("Live Editor", cls="text-2xl font-bold mb-4"),
+                H2("Live Editor", cls="text-3xl font-bold mb-4"),
                 Form(
-                    Input(type="file", name="mermaid_file", accept=".mmd,.txt,.mermaid", cls="mb-2 p-2 w-full border rounded"),
+                    Input(type="file", name="mermaid_file", accept=".mmd,.txt,.mermaid", cls="mb-2 p-2 w-full border rounded text-2xl"),
                     Button("Upload File", cls="btn bg-blue-500 hover:bg-blue-700 text-white text-xl font-bold py-2 px-4 rounded"),
                     enctype="multipart/form-data",
                     hx_post="/upload",
@@ -36,7 +36,7 @@ class MermaidEditor:
                     id="mermaid-input",
                     name="mermaid_input",
                     hx_post="/render",
-                    hx_trigger="keyup changed delay:250ms, htmx:afterSettle",
+                    hx_trigger="keyup changed delay:500ms, htmx:afterSettle",
                     hx_target="#mermaid-output",
                     hx_swap="innerHTML",
                     cls="flex-grow w-full p-2 border rounded resize-none text-2xl"
@@ -44,7 +44,7 @@ class MermaidEditor:
                 cls="w-full md:w-1/2 p-4 flex flex-col"
             ),
             Div(
-                H2("Rendered Mermaid Content", cls="text-2xl font-bold mb-4"),
+                H2("Rendered Mermaid Output", cls="text-3xl font-bold mb-4"),
                 Div(id="mermaid-output", cls="border p-2 bg-white w-full h-full flex items-center justify-center"),
                 cls="w-full md:w-1/2 p-4 flex flex-col h-full"
             ),
@@ -52,13 +52,17 @@ class MermaidEditor:
         )
 
 def create_mermaid_ui():
-    return Titled(
-        "FastHTML Mermaid Editor",
-        MermaidEditor(),
-        cls="text-3xl font-bold mb-4 p-4 bg-blue-100"
+    "Builds the main editor UI."
+    return Titled("FastHTML Mermaid Editor",
+        FastMermaid(),
+        cls="text-4xl font-bold mb-4 p-4 bg-blue-100"
     )
 
-def extract_and_adjust_viewbox(svg_content: str) -> Tuple[str, str]:
+def extract_and_adjust_viewbox(svg_content):
+    """Extracts the viewBox attribute from the SVG and adjusts it if necessary.
+    
+    This makes sure the rendered SVG takes up the available display space.
+    """
     match = re.search(r'viewBox="([^"]*)"', svg_content)
     if match:
         x, y, width, height = map(float, match.group(1).split())
@@ -76,8 +80,8 @@ def extract_and_adjust_viewbox(svg_content: str) -> Tuple[str, str]:
             return match.group(1), svg_content
     return None, svg_content
 
-
-async def process_mermaid_content(content: str) -> Svg:
+async def process_mermaid_content(content):
+    """Calls the Mermaid Ink API on `content` and returns a rendered `Svg`."""
     encoded_content = base64.urlsafe_b64encode(content.encode()).decode()
     svg_url = f"https://mermaid.ink/svg/{encoded_content}"
     async with httpx.AsyncClient() as client:
@@ -92,7 +96,6 @@ async def process_mermaid_content(content: str) -> Svg:
                 cls="w-full h-full"
             )
         else:
-            print(f"Failed to render diagram: HTTP {response.status_code}")
             return P(f"Failed to render diagram: HTTP {response.status_code}", cls="text-red-500")
 
 @rt('/')
@@ -101,19 +104,28 @@ def get():
 
 @rt('/upload')
 async def post(request):
-    form = await request.form()
-    file = form['mermaid_file']
-    if not file.filename:
-        print("No file selected")
-        return P("No file selected", cls="text-red-500")
+    "Reads the uploaded file and returns its content."
+    try:
+        form = await request.form()
+        file = form['mermaid_file']
+        if not file.filename:
+            return P("No file selected", cls="text-red-500")
 
-    content = (await file.read()).decode('utf-8')
-    return content
+        content = (await file.read()).decode('utf-8')
+        return content
+    except Exception as e:
+        return P(f"An error occurred during upload: {str(e)}", cls="text-red-500")
 
 @rt('/render')
 async def post(request):
-    form_data = await request.form()
-    content = form_data.get('mermaid_input', '').strip()
-    return await process_mermaid_content(content)
+    "Processes the Mermaid content in the form and returns an SVG."
+    try:
+        form_data = await request.form()
+        content = form_data.get('mermaid_input', '').strip()
+        return await process_mermaid_content(content)
+    except Exception as e:
+        return P(f"An error occurred during rendering: {str(e)}", cls="text-red-500")
 
+
+# run the mermaid editor
 serve()
