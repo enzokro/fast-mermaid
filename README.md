@@ -1,13 +1,11 @@
 # fast-mermaid
-Live Mermaid editor and renderer using FastHTML
+Live Mermaid editor using FastHTML
 
 ## Creating Mermaid Graphs
 
-You can either upload a valid Mermaid file, or type directly into the text area!
-Both interactions will create a Mermaid graph using the official Ink API, and render it in the display area.
+You can either upload a Mermaid file, or type directly into the text area.
+Both interactions will create an SVG using the Mermaid Ink API, and display it in the content area.
 
 ## Notes 
 
-There are some helper functions to to make the SVG returned by the Mermaid API fills up the available space. This is done by parsing the `viewBox` returned by the API, and changing its dimensions as needed.
-
-I also included a sample file "editor_workflow.mermaid" that shows how this app itself works. You can upload it to see its graph.
+I included a sample file "editor_workflow.mermaid" that shows the workflow of this app itself. You can upload it to see the graph!
