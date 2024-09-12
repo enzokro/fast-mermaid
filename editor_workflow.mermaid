@@ -1,0 +1,34 @@
+sequenceDiagram
+    participant User
+    participant Browser
+    participant Server
+    participant MermaidInk
+
+    User->>Browser: Open Mermaid Editor
+    Browser->>Server: GET /
+    Server-->>Browser: Return HTML with Editor UI
+    Browser->>User: Display Editor UI
+
+    Note over User,Browser: User types or edits Mermaid code
+
+    Browser->>Server: POST /render (HTMX request on keyup, change, or htmx:afterSettle)
+    Server->>MermaidInk: GET SVG for Mermaid code
+    MermaidInk-->>Server: Return SVG
+    Server-->>Browser: Return SVG content
+    Note over Server: Extract and adjust viewBox
+    Browser->>User: Update rendered diagram
+
+    Note over User,Browser: User uploads Mermaid file
+
+    User->>Browser: Select Mermaid file
+    Browser->>Server: POST /upload (HTMX request)
+    Server-->>Browser: Return updated textarea content
+    Note over Browser: htmx:afterSettle event triggered
+    Browser->>Server: POST /render (HTMX request)
+    Server->>MermaidInk: GET SVG for uploaded content
+    MermaidInk-->>Server: Return SVG
+    Server-->>Browser: Return SVG content
+    Note over Server: Extract and adjust viewBox
+    Browser->>User: Display uploaded diagram
+
+    Note over User,Browser: User continues editing...
